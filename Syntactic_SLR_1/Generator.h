@@ -22,6 +22,9 @@ set<char>& get_terminator();
 class generator
 {
 public:
+	int get_relation(char _nonTerminator, string _generation);
+
+public:
 	generator();
 	unordered_map<char, set<string>> grammar;
 	vector<pair<char, string>> generation;

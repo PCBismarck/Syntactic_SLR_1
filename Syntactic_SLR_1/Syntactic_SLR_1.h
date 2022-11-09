@@ -24,10 +24,11 @@ public:
 	string get_branch_token();//根据node的branch返回由节点的branch生成的一个token
 
 public:
-	int id;
-	unordered_map<char, vector<pair<string, int>>> Generation;
-	//set<string> branch;//string  E>E+T
+	int id;//节点的id
+	unordered_map<char, vector<pair<string, int>>> Generation;//节点包含的产生式
+	//string  E>E+T
 	vector<pair<string, int>> branch_;
+	unordered_map<char, int> jump;
 
 };
 
@@ -46,11 +47,22 @@ public:
 	generator G;
 };
 
-//class LRT
-//{
-//public:
-//	
-//};
+class LRT
+{
+public:
+	LRT();
+
+	void analysis(vector<char> input);
+
+	void print_LRT();
+
+	int get_next_state(int state, char note);
+
+public:
+	unordered_map<string, int> pat;
+	DFA D;
+
+};
 
 
 

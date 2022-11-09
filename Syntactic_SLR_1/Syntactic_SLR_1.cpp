@@ -11,16 +11,18 @@ using namespace std;
 
 int main()
 {
-	generator G;
-	auto it = G.generation;
+
+	LRT lrt;
+	auto it = lrt.D.G.generation;
 	for (int i = 0 ; i < it.size(); ++i)
 	{
 		cout << i << '.' << it[i].first << "->" << it[i].second << endl;
 	}
-	DFA D;
+	
 	vector<pair<char, string>> result;
 	//D.closure('E', result);
-	D.closure('T', result);
+	lrt.D.closure('T', result);
+	lrt.print_LRT();
 	return 0;
 }
 
@@ -34,7 +36,7 @@ DFA::DFA()
 	I.branch_.push_back(pair<string, int>("e>E", 0));
 	state.push_back(I);
 	StateID[I.get_branch_token()] = 0;
-	int len = state.size();
+	
 	for (int cnt = 0; cnt < state.size(); ++cnt)
 	{
 		//利用节点的branch生成节点信息
@@ -57,7 +59,10 @@ DFA::DFA()
 				{
 					state.push_back(new_node);
 					StateID[new_node.get_branch_token()] = new_node.id;
+					state[cnt].jump[*it] = new_node.id;
 				}
+				else
+					state[cnt].jump[*it] = StateID[new_node.get_branch_token()];
 			}
 		}
 	}
@@ -89,14 +94,19 @@ bool DFA::closure(char nonTerminator, vector<pair<char, string>>& result)
 bool DFA::create_node_info(node& to_create, vector<pair<string, int>>& branch)
 {
 	set<char> left_nonTerminator;
-	for (auto it = branch.begin(); it != branch.end(); ++it)
+	for (auto it = branch.begin(); it != branch.end(); ++it)//把branch中的项加入，同时找出其他的非终结符
 	{
 		int pos = it->second + 2;
-		if (is_non_terminator(it->first[pos]))
+		if (it->first.length() > pos && is_non_terminator(it->first[pos]))
 			left_nonTerminator.insert(it->first[pos]);
+		else if (it->first.length() == pos)//为归约项
+		{
+			//在跳转表中增加归约的式子序号
+			to_create.jump['$'] = G.get_relation(it->first[0], it->first.substr(2));
+		}
 		to_create.Generation[it->first[0]].push_back(pair<string, int>((it->first).substr(2), it->second));
 	}
-
+	//对找到的非终结符求闭包，加入到集合中
 	for (auto it = left_nonTerminator.begin(); it != left_nonTerminator.end(); ++it)
 	{
 		vector<pair<char, string>> result;
@@ -113,13 +123,13 @@ bool DFA::get_node_branch(char note, vector<pair<string, int>>& result, node &I)
 	{
 		for (auto it_g = map_g->second.begin(); it_g != map_g->second.end(); ++it_g)//该非终结符的每个产生式
 		{
-			if ((it_g->first)[it_g->second] == note)
+			if (it_g->first.length() > it_g->second && (it_g->first)[it_g->second] == note)
 			{
 				string key;
 				key.push_back(map_g->first);
 				key.push_back('>');
 				key.append(it_g->first);
-				result.push_back(pair<string, int>(key, it_g->second + 1));
+				result.push_back(pair<string, int>(key, it_g->second + 1));//小圆点位置右移一位
 			}
 		}
 	}
@@ -132,4 +142,67 @@ std::string node::get_branch_token()
 	for (auto it = branch_.begin(); it != branch_.end(); ++it)
 		token.append(it->first).append(to_string(it->second));
 	return token;
+}
+
+LRT::LRT()
+{
+	//为每个节点构建一行跳转
+	for (int i = 0; i < D.state.size(); ++i)
+	{
+		for (auto it = D.state[i].jump.begin(); it != D.state[i].jump.end(); ++it)
+		{
+			string key = to_string(i) + it->first;
+			pat[key] = it->second;
+		}
+	}
+}
+
+void LRT::print_LRT()
+{
+	cout << "LRT:";
+	vector<char> head;
+	for (auto it = get_terminator().begin(); it != get_terminator().end(); ++it)
+		head.push_back(*it);
+	head.push_back('$');
+	for (auto it = get_non_terminator().begin(); it != get_non_terminator().end(); ++it)
+		if (*it != 'S')
+			head.push_back(*it);
+
+	string divide(head.size() * 9, '-');
+	cout << endl << divide << endl << "|";
+
+	for (auto it = head.begin(); it != head.end(); ++it)
+		cout << "\t|" << "   " << *it ;
+	
+	cout << "\t|" << endl << divide << endl;
+
+	for (int i = 0; i < D.state.size(); ++i)
+	{
+		cout<< "|" << "   " << i << "\t|";
+		for (auto it = head.begin(); it != head.end(); ++it)
+		{
+			int state = get_next_state(i, *it);
+			if (state == -1)
+				cout << "  " << "ACC" << "\t|";
+			else if (state == 0)
+				cout << "\t|";
+			else
+			{
+				if (is_terminator(*it))
+					cout << "   S";
+				else if (*it == '$')
+					cout << "   R";
+				else
+					cout << "   ";
+				cout << state << "\t|";
+
+			}
+		}
+		cout << endl << divide << endl;
+	}
+}
+
+int LRT::get_next_state(int state, char note)
+{
+		return pat[to_string(state) + note];
 }

@@ -11,7 +11,6 @@ using namespace std;
 
 int main()
 {
-
 	LRT lrt;
 	auto it = lrt.D.G.generation;
 	for (int i = 0 ; i < it.size(); ++i)
@@ -21,6 +20,9 @@ int main()
 	
 	vector<pair<char, string>> result;
 	//D.closure('E', result);
+	set<char> f_result;
+	generator g;
+	g.Follow('T', f_result);
 	lrt.D.closure('T', result);
 	lrt.print_LRT();
 	return 0;
@@ -102,6 +104,7 @@ bool DFA::create_node_info(node& to_create, vector<pair<string, int>>& branch)
 		else if (it->first.length() == pos)//为归约项
 		{
 			//在跳转表中增加归约的式子序号
+
 			to_create.jump['$'] = G.get_relation(it->first[0], it->first.substr(2));
 		}
 		to_create.Generation[it->first[0]].push_back(pair<string, int>((it->first).substr(2), it->second));
@@ -155,6 +158,11 @@ LRT::LRT()
 			pat[key] = it->second;
 		}
 	}
+}
+
+void LRT::analysis(vector<char> input)
+{
+
 }
 
 void LRT::print_LRT()

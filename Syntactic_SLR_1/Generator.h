@@ -23,7 +23,8 @@ class generator
 {
 public:
 	int get_relation(char _nonTerminator, string _generation);
-
+	bool Follow(char _nonTerminator, set<char>& result);
+	bool merge(set<char>& des, set<char>& src);
 public:
 	generator();
 	unordered_map<char, set<string>> grammar;

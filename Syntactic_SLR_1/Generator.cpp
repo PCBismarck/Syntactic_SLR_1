@@ -64,6 +64,51 @@ int generator::get_relation(char _nonTerminator, string _generation)
 	return -1;
 }
 
+
+bool generator::Follow(char _nonTerminator, set<char>& result)
+{
+	if (!is_non_terminator(_nonTerminator))
+		return false;
+	if (_nonTerminator == 'S')
+		result.insert('$');
+	for (auto it = grammar.begin(); it != grammar.end(); ++it)
+	{
+		for (set<string>::iterator it_s = it->second.begin(); it_s != it->second.end(); ++it_s)
+		{
+			size_t pos = (*it_s).find(_nonTerminator);
+			if (pos == string::npos)
+				break;
+			if (pos == (*it_s).length() - 1 && _nonTerminator != it->first)//出现在末尾且不在生成式左边
+			{
+				set<char> temp;
+				if (Follow(it->first, temp))
+					merge(result, temp);
+			}
+			else if(pos++ < (*it_s).length())
+			{
+				if (is_terminator((*it_s)[pos]))
+					result.insert((*it_s)[pos]);
+				else if (is_non_terminator((*it_s)[pos]) && (*it_s)[pos] != _nonTerminator)
+				{
+					set<char> temp;
+					if (Follow(it->first, temp))
+						merge(result, temp);
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
+
+
+bool generator::merge(set<char>& des, set<char>& src)
+{
+	des.insert(src.begin(), src.end());
+	return true;
+}
+
 generator::generator()
 {
 	nonTerminator.insert('S');

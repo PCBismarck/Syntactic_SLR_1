@@ -4,7 +4,7 @@
 cmake_minimum_required (VERSION 3.8)
 
 # 将源代码添加到此项目的可执行文件。
-add_executable (Syntactic_SLR_1 "Syntactic_SLR_1.cpp" "Syntactic_SLR_1.h" "Generator.h" "Generator.cpp")
+add_executable (Syntactic_SLR_1 "Syntactic_SLR_1.cpp" "Syntactic_SLR_1.h" "Generator.h" "Generator.cpp" "main.cpp")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET Syntactic_SLR_1 PROPERTY CXX_STANDARD 20)

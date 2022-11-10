@@ -22,9 +22,12 @@ int main()
 	//D.closure('E', result);
 	set<char> f_result;
 	generator g;
+	vector<char> test = { 'd', '+', 'd', '$' };
 	g.Follow('T', f_result);
 	lrt.D.closure('T', result);
 	lrt.print_LRT();
+	cout << endl << endl;
+	lrt.analysis(test);
 	return 0;
 }
 
@@ -35,7 +38,7 @@ DFA::DFA()
 	//初始化开始条件
 	node I;
 	I.id = state.size();
-	I.branch_.push_back(pair<string, int>("e>E", 0));
+	I.branch_.push_back(pair<string, int>("S>E", 0));
 	state.push_back(I);
 	StateID[I.get_branch_token()] = 0;
 	
@@ -61,10 +64,18 @@ DFA::DFA()
 				{
 					state.push_back(new_node);
 					StateID[new_node.get_branch_token()] = new_node.id;
-					state[cnt].jump[*it] = new_node.id;
+					if(is_terminator(*it))
+						state[cnt].jump[*it] = "S"+to_string(new_node.id);
+					else
+						state[cnt].jump[*it] =  to_string(new_node.id);
 				}
 				else
-					state[cnt].jump[*it] = StateID[new_node.get_branch_token()];
+				{
+					if (is_terminator(*it))
+						state[cnt].jump[*it] = "S" + to_string(StateID[new_node.get_branch_token()]);
+					else
+						state[cnt].jump[*it] =  to_string(StateID[new_node.get_branch_token()]);
+				}
 			}
 		}
 	}
@@ -104,8 +115,17 @@ bool DFA::create_node_info(node& to_create, vector<pair<string, int>>& branch)
 		else if (it->first.length() == pos)//为归约项
 		{
 			//在跳转表中增加归约的式子序号
+			set<char> follow;
+			G.Follow(it->first[0], follow);
+			for (auto it_follow = follow.begin(); it_follow != follow.end(); ++it_follow)
+			{
+				string token = to_string(G.get_relation(it->first[0], it->first.substr(2)));
+				if(is_non_terminator(*it_follow))
+					to_create.jump[*it_follow] = token;
+				else
+					to_create.jump[*it_follow] = "R" + token;
 
-			to_create.jump['$'] = G.get_relation(it->first[0], it->first.substr(2));
+			}
 		}
 		to_create.Generation[it->first[0]].push_back(pair<string, int>((it->first).substr(2), it->second));
 	}
@@ -162,7 +182,58 @@ LRT::LRT()
 
 void LRT::analysis(vector<char> input)
 {
+	state_stk.push_back(0);
+	note_stk.push_back('-');
+	int pos = 0;
+	int turn = 0;
+	string t_n(input.size()/8, '\t');
+	while (true)
+	{
+		string move = get_next_state(state_stk.back(), input[pos]);
 
+		string divide((state_stk.size()+5) * 9, '-');
+
+		cout << turn << "\tinput\t" << t_n << "Movement\t";
+		cout << "State:\t";	
+		print_stack(state_stk);
+		cout << endl << "\t";
+		print_input(input, pos);
+		cout << "\t" << move;
+		cout << "\t\tNote:\t";
+		print_stack(note_stk);
+		cout << endl << divide<< endl;
+		if (move == "")//找不到
+		{
+			cout << "Error " << endl;
+			break;
+		}
+		else if(move == "R0")//接受
+		{
+			cout << "Accept " << endl;
+			break;
+		}
+		else if(move[0] == 'S')//移进
+		{
+			int state_next = atoi(move.substr(1).c_str());
+			note_stk.push_back(input[pos++]);
+			state_stk.push_back(state_next);
+		}
+		else if (move[0] == 'R')//归约
+		{
+			int seq = atoi(move.substr(1).c_str());
+			pair<char, string> generation = D.G.generation[seq];
+			int pop_num = generation.second.length();
+			for (int i = 0; i < pop_num; ++i)
+			{
+				state_stk.pop_back();
+				note_stk.pop_back();
+			}
+			note_stk.push_back(generation.first);
+			int next = atoi(get_next_state(state_stk.back(), note_stk.back()).c_str());
+			state_stk.push_back(next);
+		}
+		++turn;
+	}
 }
 
 void LRT::print_LRT()
@@ -180,37 +251,46 @@ void LRT::print_LRT()
 	cout << endl << divide << endl << "|";
 
 	for (auto it = head.begin(); it != head.end(); ++it)
-		cout << "\t|" << "   " << *it ;
-	
+		cout << "\t|" << "   " << *it;
+
 	cout << "\t|" << endl << divide << endl;
 
 	for (int i = 0; i < D.state.size(); ++i)
 	{
-		cout<< "|" << "   " << i << "\t|";
+		cout << "|" << "   " << i << "\t|";
 		for (auto it = head.begin(); it != head.end(); ++it)
 		{
-			int state = get_next_state(i, *it);
-			if (state == -1)
-				cout << "  " << "ACC" << "\t|";
-			else if (state == 0)
-				cout << "\t|";
-			else
-			{
-				if (is_terminator(*it))
-					cout << "   S";
-				else if (*it == '$')
-					cout << "   R";
-				else
-					cout << "   ";
-				cout << state << "\t|";
-
-			}
+			string state = get_next_state(i, *it);
+			if (state == "R0")
+				state = "ACC";
+			cout << "   " << state << "\t|";
 		}
 		cout << endl << divide << endl;
 	}
 }
 
-int LRT::get_next_state(int state, char note)
+string LRT::get_next_state(int state, char note)
 {
-		return pat[to_string(state) + note];
+	return pat[to_string(state) + note];
+}
+
+bool LRT::print_stack(auto stk)
+{
+	cout << "|   ";
+	for (auto it = stk.begin(); it != stk.end(); ++it)
+	{
+		cout << *it << "\t|   ";
+	}
+	return true;
+}
+
+bool LRT::print_input(auto input, int pos)
+{
+	for (int i = 0; i < pos; ++i)
+		cout << " ";
+	for (auto it = input.begin()+pos; it != input.end(); ++it)
+	{
+		cout << *it;
+	}
+	return true;
 }

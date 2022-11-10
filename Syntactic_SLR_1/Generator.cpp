@@ -71,31 +71,38 @@ bool generator::Follow(char _nonTerminator, set<char>& result)
 		return false;
 	if (_nonTerminator == 'S')
 		result.insert('$');
+	set<char> n_T;
 	for (auto it = grammar.begin(); it != grammar.end(); ++it)
 	{
 		for (set<string>::iterator it_s = it->second.begin(); it_s != it->second.end(); ++it_s)
 		{
 			size_t pos = (*it_s).find(_nonTerminator);
-			if (pos == string::npos)
-				break;
 			if (pos == (*it_s).length() - 1 && _nonTerminator != it->first)//出现在末尾且不在生成式左边
 			{
-				set<char> temp;
-				if (Follow(it->first, temp))
-					merge(result, temp);
+				//set<char> temp;
+				//if (Follow(it->first, temp))
+				//	merge(result, temp);
+				n_T.insert(it->first);
 			}
-			else if(pos++ < (*it_s).length())
+			else if(pos < (*it_s).length())
 			{
+				++pos;
 				if (is_terminator((*it_s)[pos]))
 					result.insert((*it_s)[pos]);
-				else if (is_non_terminator((*it_s)[pos]) && (*it_s)[pos] != _nonTerminator)
-				{
-					set<char> temp;
-					if (Follow(it->first, temp))
-						merge(result, temp);
-				}
+				//else if (is_non_terminator((*it_s)[pos]) && (*it_s)[pos] != _nonTerminator)
+				//{
+				//	set<char> temp;
+				//	//if (First(it->first, temp))
+				//	//	merge(result, temp);
+				//}
 			}
 		}
+	}
+	for (auto it = n_T.begin(); it != n_T.end(); ++it)
+	{
+		set<char> temp;
+		if (Follow(*it, temp))
+			merge(result, temp);
 	}
 
 	return true;

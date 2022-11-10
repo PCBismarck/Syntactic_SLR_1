@@ -14,7 +14,7 @@
 #include "Generator.h"
 
 
-#define DEBUG
+//#define DEBUG
 
 using namespace std;
 
@@ -28,7 +28,7 @@ public:
 	unordered_map<char, vector<pair<string, int>>> Generation;//节点包含的产生式
 	//string  E>E+T
 	vector<pair<string, int>> branch_;
-	unordered_map<char, int> jump;
+	unordered_map<char, string> jump;
 
 };
 
@@ -56,11 +56,15 @@ public:
 
 	void print_LRT();
 
-	int get_next_state(int state, char note);
+	string get_next_state(int state, char note);
 
+	bool print_stack(auto stk);
+	bool print_input(auto input, int pos);
 public:
-	unordered_map<string, int> pat;
+	unordered_map<string, string> pat;
 	DFA D;
+	vector<char> note_stk;
+	vector<int> state_stk;
 
 };
 
